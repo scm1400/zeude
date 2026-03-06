@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/zeude/zeude/internal/autoupdate"
+	"github.com/zeude/zeude/internal/executil"
 	"github.com/zeude/zeude/internal/config"
 	"github.com/zeude/zeude/internal/mcpconfig"
 	"github.com/zeude/zeude/internal/resolver"
@@ -121,7 +121,7 @@ func main() {
 	injectTelemetryEnv(syncResult)
 
 	// 7. Exec real claude (replaces this process - no PTY needed!)
-	err = syscall.Exec(realClaude, os.Args, os.Environ())
+	err = executil.Exec(realClaude, os.Args, os.Environ())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "zeude: failed to exec claude: %v\n", err)
 		os.Exit(1)

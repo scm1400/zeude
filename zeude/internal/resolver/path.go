@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -96,7 +97,18 @@ func searchPATH(name, excludeDir string) (string, error) {
 
 		candidate := filepath.Join(dir, name)
 
-		// Resolve symlinks and verify
+		// On Windows, try with .exe extension first
+		if runtime.GOOS == "windows" {
+			candidateExe := candidate + ".exe"
+			realPath, err := resolveSymlinks(candidateExe)
+			if err == nil {
+				if err := verifyExecutable(realPath); err == nil {
+					return realPath, nil
+				}
+			}
+		}
+
+		// Resolve symlinks and verify (original logic)
 		realPath, err := resolveSymlinks(candidate)
 		if err != nil {
 			continue
@@ -132,7 +144,12 @@ func verifyExecutable(path string) error {
 		return errors.New("path is a directory")
 	}
 
-	// Check if file is executable (owner, group, or other)
+	if runtime.GOOS == "windows" {
+		// On Windows, executability is determined by extension, not permission bits
+		return nil
+	}
+
+	// Unix: check if file is executable (owner, group, or other)
 	mode := info.Mode()
 	if mode&0111 == 0 {
 		return errors.New("file is not executable")

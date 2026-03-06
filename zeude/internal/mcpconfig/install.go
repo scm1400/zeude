@@ -224,20 +224,14 @@ func parsePipShowVersion(output string) string {
 
 // checkFileExists checks if a file exists.
 func checkFileExists(path string) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "test", "-f", path)
-	return cmd.Run() == nil
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 // checkCommandExists checks if a command is available in PATH.
 func checkCommandExists(command string) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "which", command)
-	return cmd.Run() == nil
+	_, err := exec.LookPath(command)
+	return err == nil
 }
 
 // reportStatusToAPI sends a JSON payload to the dashboard status API.

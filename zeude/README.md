@@ -19,12 +19,20 @@ curl -fsSL https://your-dashboard-url/releases/install.sh | ZEUDE_AGENT_KEY=zd_x
 
 Replace `zd_xxx` with your agent key from the dashboard.
 
+## Quick Install (Windows)
+
+```powershell
+$env:ZEUDE_AGENT_KEY="zd_xxx"; irm https://your-dashboard-url/releases/install.ps1 | iex
+```
+
+Replace `zd_xxx` with your agent key from the dashboard.
+
 ## Manual Installation
 
 ### Prerequisites
 
 - Claude Code installed (`npm install -g @anthropic-ai/claude-code`)
-- macOS (Intel/Apple Silicon) or Linux (x86_64/arm64)
+- macOS (Intel/Apple Silicon), Linux (x86_64/arm64), or Windows (x86_64/arm64)
 
 ### Steps
 
@@ -213,6 +221,18 @@ This will:
 3. Check cache:
    ```bash
    cat ~/.zeude/config-cache.json | jq '.config.serverCount'
+   ```
+
+### Windows: PATH not updated
+
+1. Open a NEW terminal after installation (PATH changes require restart)
+2. Verify PATH:
+   ```powershell
+   $env:PATH -split ";" | Select-String "zeude"
+   ```
+3. Manual fix:
+   ```powershell
+   [Environment]::SetEnvironmentVariable("PATH", "$env:USERPROFILE\.zeude\bin;$([Environment]::GetEnvironmentVariable('PATH','User'))", "User")
    ```
 
 ### Real Claude not found

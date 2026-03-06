@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"syscall"
+	"runtime"
 
 	"github.com/zeude/zeude/internal/autoupdate"
+	"github.com/zeude/zeude/internal/executil"
 )
 
 const (
@@ -90,10 +91,14 @@ func runDoctor() {
 	}
 
 	// Try to find and exec the doctor binary
-	doctorPath := filepath.Join(home, ".zeude", "bin", "zeude-doctor")
+	doctorName := "zeude-doctor"
+	if runtime.GOOS == "windows" {
+		doctorName = "zeude-doctor.exe"
+	}
+	doctorPath := filepath.Join(home, ".zeude", "bin", doctorName)
 	if _, err := os.Stat(doctorPath); err == nil {
 		// Found zeude-doctor binary - exec it
-		err = syscall.Exec(doctorPath, []string{"zeude-doctor"}, os.Environ())
+		err = executil.Exec(doctorPath, []string{"zeude-doctor"}, os.Environ())
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: failed to exec zeude-doctor: %v\n", err)
 			os.Exit(1)
@@ -111,7 +116,11 @@ func runDoctor() {
 	fmt.Printf("%s[OK]%s Zeude version: %s\n", colorGreen, colorReset, version)
 
 	// Check shim
-	shimPath := filepath.Join(home, ".zeude", "bin", "claude")
+	shimName := "claude"
+	if runtime.GOOS == "windows" {
+		shimName = "claude.exe"
+	}
+	shimPath := filepath.Join(home, ".zeude", "bin", shimName)
 	if _, err := os.Stat(shimPath); err == nil {
 		fmt.Printf("%s[OK]%s Shim installed: %s\n", colorGreen, colorReset, shimPath)
 	} else {
@@ -176,7 +185,7 @@ func runDoctor() {
 					hookCount++
 					mode := info.Mode()
 					// Check if executable (user execute bit)
-					if mode&0100 == 0 {
+					if runtime.GOOS != "windows" && mode&0100 == 0 {
 						fmt.Printf("%s[FAIL]%s %s/%s: not executable (chmod +x needed)\n", colorRed, colorReset, eventDir.Name(), hookFile.Name())
 						hookIssues++
 					} else {
@@ -187,7 +196,11 @@ func runDoctor() {
 			if hookCount == 0 {
 				fmt.Printf("%s[INFO]%s No hooks installed\n", colorGray, colorReset)
 			} else if hookIssues > 0 {
-				fmt.Printf("\n%s[WARN]%s %d hook(s) have issues. Run: chmod +x ~/.claude/hooks/*/*\n", colorYellow, colorReset, hookIssues)
+				if runtime.GOOS == "windows" {
+					fmt.Printf("\n%s[WARN]%s %d hook(s) have issues.\n", colorYellow, colorReset, hookIssues)
+				} else {
+					fmt.Printf("\n%s[WARN]%s %d hook(s) have issues. Run: chmod +x ~/.claude/hooks/*/*\n", colorYellow, colorReset, hookIssues)
+				}
 			}
 		}
 	}
@@ -208,7 +221,7 @@ func ForceUpdate() error {
 		execPath, err := os.Executable()
 		if err == nil {
 			execPath, _ = filepath.EvalSymlinks(execPath)
-			syscall.Exec(execPath, os.Args, os.Environ())
+			executil.Exec(execPath, os.Args, os.Environ())
 		}
 	}
 

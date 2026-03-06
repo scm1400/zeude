@@ -9,8 +9,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 	"time"
+
+	"github.com/zeude/zeude/internal/executil"
 )
 
 // Version is set at build time via -ldflags
@@ -23,6 +24,15 @@ const (
 	defaultUpdateURL    = "https://your-dashboard-url/releases"
 )
 
+// zeudeConfigDir returns the path to ~/.zeude.
+func zeudeConfigDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		home = os.Getenv("HOME")
+	}
+	return filepath.Join(home, ".zeude")
+}
+
 // RequiresUpdate checks if an update is required (more than forceUpdateInterval since last successful update).
 // Returns true if update is required, false otherwise.
 // This is used to enforce periodic updates.
@@ -31,7 +41,7 @@ func RequiresUpdate() bool {
 		return false
 	}
 
-	configDir := filepath.Join(os.Getenv("HOME"), ".zeude")
+	configDir := zeudeConfigDir()
 	lastSuccessFile := filepath.Join(configDir, "last_successful_update")
 
 	info, err := os.Stat(lastSuccessFile)
@@ -47,7 +57,7 @@ func RequiresUpdate() bool {
 
 // TimeSinceLastUpdate returns how long since the last successful update
 func TimeSinceLastUpdate() time.Duration {
-	configDir := filepath.Join(os.Getenv("HOME"), ".zeude")
+	configDir := zeudeConfigDir()
 	lastSuccessFile := filepath.Join(configDir, "last_successful_update")
 
 	info, err := os.Stat(lastSuccessFile)
@@ -60,7 +70,7 @@ func TimeSinceLastUpdate() time.Duration {
 
 // MarkUpdateSuccess marks the current time as last successful update
 func MarkUpdateSuccess() {
-	configDir := filepath.Join(os.Getenv("HOME"), ".zeude")
+	configDir := zeudeConfigDir()
 	lastSuccessFile := filepath.Join(configDir, "last_successful_update")
 	touchFile(lastSuccessFile)
 }
@@ -78,7 +88,7 @@ func touchFile(path string) {
 // writeCurrentVersion writes the current version to ~/.zeude/current_version
 // This allows the update checker hook to compare versions
 func writeCurrentVersion() {
-	configDir := filepath.Join(os.Getenv("HOME"), ".zeude")
+	configDir := zeudeConfigDir()
 	versionFile := filepath.Join(configDir, "current_version")
 
 	// Ensure directory exists
@@ -152,7 +162,7 @@ func CheckWithResult() UpdateResult {
 		execPath, _ = filepath.EvalSymlinks(execPath)
 		fmt.Fprintf(os.Stderr, "\n")
 		// Replace current process with new binary
-		syscall.Exec(execPath, os.Args, os.Environ())
+		executil.Exec(execPath, os.Args, os.Environ())
 		// If exec fails, continue with old binary
 	}
 
@@ -225,6 +235,9 @@ func performUpdate() error {
 	// Determine platform
 	platform := fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH)
 	binaryURL := fmt.Sprintf("%s/claude-%s", defaultUpdateURL, platform)
+	if runtime.GOOS == "windows" {
+		binaryURL += ".exe"
+	}
 
 	// Get current executable path
 	execPath, err := os.Executable()
@@ -272,23 +285,42 @@ func performUpdate() error {
 		return fmt.Errorf("failed to write update: %w", err)
 	}
 
-	// Make executable
-	if err := os.Chmod(tmpPath, 0755); err != nil {
-		return fmt.Errorf("failed to chmod: %w", err)
+	// Make executable (Unix only, no-op on Windows)
+	if runtime.GOOS != "windows" {
+		if err := os.Chmod(tmpPath, 0755); err != nil {
+			return fmt.Errorf("failed to chmod: %w", err)
+		}
 	}
 
-	// Backup current binary
+	// Backup current binary and install new one
 	backupPath := execPath + ".old"
 	os.Remove(backupPath) // Remove old backup if exists
-	if err := os.Rename(execPath, backupPath); err != nil {
-		return fmt.Errorf("failed to backup current binary: %w", err)
-	}
 
-	// Move new binary into place
-	if err := os.Rename(tmpPath, execPath); err != nil {
-		// Try to restore backup
-		os.Rename(backupPath, execPath)
-		return fmt.Errorf("failed to install update: %w", err)
+	if runtime.GOOS == "windows" {
+		// Windows locks running executables, preventing direct rename.
+		// Write new binary next to current as .new, swap on next launch.
+		newPath := execPath + ".new"
+		os.Remove(newPath)
+		if err := os.Rename(tmpPath, newPath); err != nil {
+			return fmt.Errorf("failed to stage update: %w", err)
+		}
+		// Attempt the swap — may succeed if the process is about to exit
+		os.Rename(execPath, backupPath)
+		if err := os.Rename(newPath, execPath); err != nil {
+			// Restore backup, leave .new for next startup
+			os.Rename(backupPath, execPath)
+		} else {
+			os.Remove(backupPath)
+		}
+	} else {
+		if err := os.Rename(execPath, backupPath); err != nil {
+			return fmt.Errorf("failed to backup current binary: %w", err)
+		}
+		if err := os.Rename(tmpPath, execPath); err != nil {
+			os.Rename(backupPath, execPath)
+			return fmt.Errorf("failed to install update: %w", err)
+		}
+		os.Remove(backupPath)
 	}
 
 	// Clean up backup (on success, old binary is no longer needed)

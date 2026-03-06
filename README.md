@@ -156,7 +156,7 @@ This proves that **"Measurement brings visibility, and sharing drives adoption."
 - [Claude Code](https://www.anthropic.com/claude-code) installed
 - [Supabase](https://supabase.com) account (for data persistence)
 - [ClickHouse](https://clickhouse.com) instance (for analytics)
-- macOS (Intel/Apple Silicon) or Linux (x86_64/arm64)
+- macOS (Intel/Apple Silicon), Linux (x86_64/arm64), or Windows (x86_64/arm64)
 
 ### Installation
 
@@ -186,8 +186,15 @@ This proves that **"Measurement brings visibility, and sharing drives adoption."
    ```
 
 5. **Install CLI on client machines**
+
+   **macOS/Linux:**
    ```bash
    curl -fsSL https://your-dashboard-url/releases/install.sh | ZEUDE_AGENT_KEY=zd_xxx bash
+   ```
+
+   **Windows (PowerShell):**
+   ```powershell
+   $env:ZEUDE_AGENT_KEY="zd_xxx"; irm https://your-dashboard-url/releases/install.ps1 | iex
    ```
 
 ---

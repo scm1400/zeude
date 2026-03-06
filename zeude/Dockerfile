@@ -25,11 +25,17 @@ RUN VERSION=$(cat /tmp/version) && \
     GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o /releases/zeude-darwin-arm64 ./cmd/doctor && \
     GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /releases/zeude-linux-amd64 ./cmd/doctor && \
     GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o /releases/zeude-linux-arm64 ./cmd/doctor && \
+    GOOS=windows GOARCH=amd64 go build -ldflags="$LDFLAGS" -o /releases/claude-windows-amd64.exe ./cmd/claude && \
+    GOOS=windows GOARCH=arm64 go build -ldflags="$LDFLAGS" -o /releases/claude-windows-arm64.exe ./cmd/claude && \
+    GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o /releases/zeude-windows-amd64.exe ./cmd/doctor && \
+    GOOS=windows GOARCH=arm64 go build -ldflags="-s -w" -o /releases/zeude-windows-arm64.exe ./cmd/doctor && \
     echo "$VERSION" > /releases/version.txt
 
 # Copy install and uninstall scripts
 COPY scripts/install.sh /releases/install.sh
 COPY scripts/uninstall.sh /releases/uninstall.sh
+COPY scripts/install.ps1 /releases/install.ps1
+COPY scripts/uninstall.ps1 /releases/uninstall.ps1
 
 # Node build stage
 FROM node:20-alpine AS builder

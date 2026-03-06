@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -81,9 +82,13 @@ func checkShimInstalled() checkResult {
 		return checkResult{"Shim installed", "fail", "Cannot get home directory"}
 	}
 
-	shimPath := filepath.Join(home, ".zeude", "bin", "claude")
+	shimName := "claude"
+	if runtime.GOOS == "windows" {
+		shimName = "claude.exe"
+	}
+	shimPath := filepath.Join(home, ".zeude", "bin", shimName)
 	if _, err := os.Stat(shimPath); os.IsNotExist(err) {
-		return checkResult{"Shim installed", "fail", "Shim not found at ~/.zeude/bin/claude"}
+		return checkResult{"Shim installed", "fail", fmt.Sprintf("Shim not found at ~/.zeude/bin/%s", shimName)}
 	}
 
 	return checkResult{"Shim installed", "pass", shimPath}

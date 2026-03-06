@@ -22,6 +22,8 @@ PLATFORMS=(
     "darwin/arm64"
     "linux/amd64"
     "linux/arm64"
+    "windows/amd64"
+    "windows/arm64"
 )
 
 # Build claude shim
@@ -31,6 +33,9 @@ for platform in "${PLATFORMS[@]}"; do
     GOOS="${platform%/*}"
     GOARCH="${platform#*/}"
     OUTPUT_NAME="claude-${GOOS}-${GOARCH}"
+    if [ "$GOOS" = "windows" ]; then
+        OUTPUT_NAME="${OUTPUT_NAME}.exe"
+    fi
 
     echo -n "  $OUTPUT_NAME... "
     GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="-s -w" -o "$OUTPUT_DIR/$OUTPUT_NAME" ./cmd/claude
@@ -44,6 +49,9 @@ for platform in "${PLATFORMS[@]}"; do
     GOOS="${platform%/*}"
     GOARCH="${platform#*/}"
     OUTPUT_NAME="zeude-${GOOS}-${GOARCH}"
+    if [ "$GOOS" = "windows" ]; then
+        OUTPUT_NAME="${OUTPUT_NAME}.exe"
+    fi
 
     echo -n "  $OUTPUT_NAME... "
     GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="-s -w" -o "$OUTPUT_DIR/$OUTPUT_NAME" ./cmd/doctor
