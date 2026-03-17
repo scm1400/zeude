@@ -10,6 +10,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Wait-AndExit($code) {
+    Write-Host ""
+    Write-Host "Press any key to exit..." -ForegroundColor DarkGray
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    exit $code
+}
+
 $InstallDir = Join-Path $env:USERPROFILE ".zeude\bin"
 $ConfigDir = Join-Path $env:USERPROFILE ".zeude"
 
@@ -42,7 +49,7 @@ $Arch = if ([Environment]::Is64BitOperatingSystem) {
 } else {
     Write-Host "FAILED" -ForegroundColor Red
     Write-Host "Error: 32-bit Windows is not supported."
-    exit 1
+    Wait-AndExit 1
 }
 $Platform = "windows-$Arch"
 Write-Host $Platform -ForegroundColor Green
@@ -70,7 +77,7 @@ if (-not $RealClaude) {
     Write-Host "FAILED" -ForegroundColor Red
     Write-Host "Error: claude.exe not found. Please install Claude Code first."
     Write-Host "  Visit: https://www.anthropic.com/claude-code"
-    exit 1
+    Wait-AndExit 1
 }
 
 # Ensure we didn't find our own shim
@@ -81,7 +88,7 @@ if ($RealClaude -like "*\.zeude\bin\*") {
     } else {
         Write-Host "FAILED" -ForegroundColor Red
         Write-Host "Error: Could not find original claude binary (only found zeude shim)."
-        exit 1
+        Wait-AndExit 1
     }
 }
 
@@ -107,7 +114,7 @@ try {
 } catch {
     Write-Host "FAILED" -ForegroundColor Red
     Write-Host "Error: Failed to download from $ShimUrl"
-    exit 1
+    Wait-AndExit 1
 }
 
 Write-Host -NoNewline "Downloading zeude doctor... "
@@ -221,3 +228,4 @@ Write-Host "  1. Open a NEW terminal (PATH changes require restart)"
 Write-Host "  2. Run 'zeude doctor' to verify installation" -ForegroundColor Cyan
 Write-Host "  3. Run 'claude' to start with telemetry enabled" -ForegroundColor Cyan
 Write-Host "  4. Type '/zeude' in Claude to open the dashboard" -ForegroundColor Cyan
+Wait-AndExit 0
