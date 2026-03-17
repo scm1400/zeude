@@ -32,8 +32,8 @@ RUN VERSION=$(cat /tmp/version) && \
     echo "$VERSION" > /releases/version.txt
 
 # Copy install/uninstall scripts and replace placeholder URLs
-ARG APP_URL=https://your-dashboard-url
-ARG OTEL_URL=https://your-otel-collector-url/
+ARG APP_URL=https://dev-zeude.zep.works
+ARG OTEL_URL=http://k8wk0w00w0g4csw4ww84040g.zep.works/
 COPY scripts/install.sh /releases/install.sh
 COPY scripts/uninstall.sh /releases/uninstall.sh
 COPY scripts/install.ps1 /releases/install.ps1
