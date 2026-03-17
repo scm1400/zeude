@@ -255,4 +255,3 @@ Write-Host "  1. Open a NEW terminal (PATH changes require restart)"
 Write-Host "  2. Run 'zeude doctor' to verify installation" -ForegroundColor Cyan
 Write-Host "  3. Run 'claude' to start with telemetry enabled" -ForegroundColor Cyan
 Write-Host "  4. Type '/zeude' in Claude to open the dashboard" -ForegroundColor Cyan
-Wait-AndExit 0
