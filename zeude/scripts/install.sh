@@ -68,6 +68,11 @@ detect_platform() {
     case "$os" in
         darwin) os="darwin" ;;
         linux) os="linux" ;;
+        msys*|mingw*|cygwin*)
+            printf "${YELLOW}Windows detected (Git Bash/MSYS).${NC}\n"
+            printf "Please use the PowerShell installer instead:\n"
+            printf "  ${BLUE}irm \"${DOWNLOAD_BASE}/releases/install.ps1\" | iex${NC}\n"
+            exit 1 ;;
         *) printf "${RED}Unsupported OS: $os${NC}\n"; exit 1 ;;
     esac
 
