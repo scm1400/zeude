@@ -108,8 +108,25 @@ Write-Host "OK" -ForegroundColor Green
 Write-Host -NoNewline "Downloading zeude shim... "
 $ShimUrl = "$DownloadBase/releases/claude-$Platform.exe"
 $ShimPath = Join-Path $InstallDir "claude.exe"
+$ShimTmp = Join-Path $InstallDir "claude.exe.new"
 try {
-    Invoke-WebRequest -Uri $ShimUrl -OutFile $ShimPath -UseBasicParsing
+    Invoke-WebRequest -Uri $ShimUrl -OutFile $ShimTmp -UseBasicParsing
+    # If existing file is locked (running process), rename it first
+    if (Test-Path $ShimPath) {
+        $ShimOld = Join-Path $InstallDir "claude.exe.old"
+        Remove-Item $ShimOld -Force -ErrorAction SilentlyContinue
+        try {
+            Rename-Item $ShimPath $ShimOld -Force
+        } catch {
+            Write-Host "WARNING" -ForegroundColor Yellow
+            Write-Host "  Existing claude.exe is locked. New version saved as claude.exe.new"
+            Write-Host "  Close all Claude sessions and rename manually, or re-run installer."
+            Write-Host ""
+        }
+    }
+    if (-not (Test-Path $ShimPath)) {
+        Rename-Item $ShimTmp "claude.exe" -Force
+    }
     Write-Host "OK" -ForegroundColor Green
 } catch {
     Write-Host "FAILED" -ForegroundColor Red
@@ -121,8 +138,17 @@ try {
 Write-Host -NoNewline "Downloading zeude doctor... "
 $DoctorUrl = "$DownloadBase/releases/zeude-$Platform.exe"
 $DoctorPath = Join-Path $InstallDir "zeude.exe"
+$DoctorTmp = Join-Path $InstallDir "zeude.exe.new"
 try {
-    Invoke-WebRequest -Uri $DoctorUrl -OutFile $DoctorPath -UseBasicParsing
+    Invoke-WebRequest -Uri $DoctorUrl -OutFile $DoctorTmp -UseBasicParsing
+    if (Test-Path $DoctorPath) {
+        $DoctorOld = Join-Path $InstallDir "zeude.exe.old"
+        Remove-Item $DoctorOld -Force -ErrorAction SilentlyContinue
+        try { Rename-Item $DoctorPath $DoctorOld -Force } catch { }
+    }
+    if (-not (Test-Path $DoctorPath)) {
+        Rename-Item $DoctorTmp "zeude.exe" -Force
+    }
     Write-Host "OK" -ForegroundColor Green
 } catch {
     Write-Host "SKIPPED (optional)" -ForegroundColor Yellow
