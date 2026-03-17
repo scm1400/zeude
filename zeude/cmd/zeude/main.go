@@ -5,11 +5,15 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
+	"sync"
 
 	"github.com/zeude/zeude/internal/autoupdate"
 	"github.com/zeude/zeude/internal/executil"
+	"github.com/zeude/zeude/internal/mcpconfig"
 )
 
 const (
@@ -28,6 +32,8 @@ func main() {
 	}
 
 	switch os.Args[1] {
+	case "init":
+		runInit()
 	case "update":
 		runUpdate()
 	case "doctor":
@@ -49,6 +55,7 @@ func printUsage() {
 	fmt.Println("Usage: zeude <command>")
 	fmt.Println()
 	fmt.Println("Commands:")
+	fmt.Println("  init      Run initialization (MCP sync + update check)")
 	fmt.Println("  update    Check for updates and install if available")
 	fmt.Println("  doctor    Run diagnostic checks")
 	fmt.Println("  version   Show version information")
@@ -80,6 +87,61 @@ func runUpdate() {
 		fmt.Printf(" %s(update available: %s)%s\n", colorYellow, result.NewVersion, colorReset)
 	} else {
 		fmt.Printf(" %s✓ Already up to date (%s)%s\n", colorGreen, version, colorReset)
+	}
+}
+
+// runInit performs the same initialization as the claude shim (MCP sync + update check)
+// but without exec'ing the real claude binary. Designed to be called from SessionStart hooks
+// so that Claude Code Desktop app sessions also get Zeude initialization.
+func runInit() {
+	var updateResult autoupdate.UpdateResult
+	var syncResult mcpconfig.SyncResult
+	var wg sync.WaitGroup
+
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		updateResult = autoupdate.CheckWithResult()
+	}()
+	go func() {
+		defer wg.Done()
+		syncResult = mcpconfig.Sync()
+	}()
+	wg.Wait()
+
+	// Build status parts (same logic as claude shim)
+	var statusParts []string
+
+	if updateResult.Updated {
+		statusParts = append(statusParts, fmt.Sprintf("updated to %s", updateResult.NewVersion))
+	} else if updateResult.NewVersionAvailable {
+		statusParts = append(statusParts, fmt.Sprintf("update available: %s", updateResult.NewVersion))
+	}
+
+	if syncResult.NoAgentKey {
+		statusParts = append(statusParts, "no agent key")
+	} else if syncResult.Success {
+		if syncResult.HookCount > 0 {
+			statusParts = append(statusParts, fmt.Sprintf("%d hooks", syncResult.HookCount))
+		}
+		if syncResult.SkillCount > 0 {
+			statusParts = append(statusParts, fmt.Sprintf("%d skills", syncResult.SkillCount))
+		}
+		if syncResult.ServerCount > 0 {
+			statusParts = append(statusParts, fmt.Sprintf("%d servers", syncResult.ServerCount))
+		}
+		if syncResult.FromCache {
+			statusParts = append(statusParts, "cached")
+		}
+	} else {
+		statusParts = append(statusParts, "sync failed")
+		os.Exit(1)
+	}
+
+	if len(statusParts) > 0 {
+		fmt.Fprintf(os.Stderr, "[zeude init] %s\n", fmt.Sprintf("%s", strings.Join(statusParts, ", ")))
+	} else {
+		fmt.Fprintf(os.Stderr, "[zeude init] ok\n")
 	}
 }
 
@@ -197,9 +259,15 @@ func runDoctor() {
 				fmt.Printf("%s[INFO]%s No hooks installed\n", colorGray, colorReset)
 			} else if hookIssues > 0 {
 				if runtime.GOOS == "windows" {
-					fmt.Printf("\n%s[WARN]%s %d hook(s) have issues.\n", colorYellow, colorReset, hookIssues)
+					fmt.Printf("\n%s[WARN]%s %d hook(s) have issues. Try re-running: zeude sync\n", colorYellow, colorReset, hookIssues)
 				} else {
 					fmt.Printf("\n%s[WARN]%s %d hook(s) have issues. Run: chmod +x ~/.claude/hooks/*/*\n", colorYellow, colorReset, hookIssues)
+				}
+			}
+			// On Windows, check if bash is available for hook execution
+			if runtime.GOOS == "windows" {
+				if _, err := exec.LookPath("bash"); err != nil {
+					fmt.Printf("%s[WARN]%s Git Bash not found. Hooks will not execute. Install Git for Windows or set CLAUDE_CODE_GIT_BASH_PATH.\n", colorYellow, colorReset)
 				}
 			}
 		}

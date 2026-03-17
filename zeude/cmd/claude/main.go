@@ -120,7 +120,10 @@ func main() {
 	// 6. Inject telemetry environment variables (only if not already set)
 	injectTelemetryEnv(syncResult)
 
-	// 7. Exec real claude (replaces this process - no PTY needed!)
+	// 7. Mark as initialized so SessionStart hooks can skip re-init
+	os.Setenv("ZEUDE_INITIALIZED", "1")
+
+	// 8. Exec real claude (replaces this process - no PTY needed!)
 	err = executil.Exec(realClaude, os.Args, os.Environ())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "zeude: failed to exec claude: %v\n", err)
