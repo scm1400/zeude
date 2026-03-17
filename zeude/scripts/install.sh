@@ -87,7 +87,8 @@ detect_platform() {
 
 # 1. Detect platform
 echo -n "Detecting platform... "
-PLATFORM=$(detect_platform)
+PLATFORM=$(detect_platform) || exit 1
+if [ -z "$PLATFORM" ]; then exit 1; fi
 printf "${GREEN}$PLATFORM${NC}\n"
 
 # 2. Find real claude location (excluding our shim)
