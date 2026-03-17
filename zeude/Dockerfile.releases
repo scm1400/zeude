@@ -31,8 +31,8 @@ RUN VERSION=$(cat /tmp/version) && \
     GOOS=windows GOARCH=arm64 go build -ldflags="-s -w" -o /releases/zeude-windows-arm64.exe ./cmd/doctor && \
     echo "$VERSION" > /releases/version.txt
 
-ARG APP_URL=https://dev-zeude.zep.works
-ARG OTEL_URL=http://k8wk0w00w0g4csw4ww84040g.zep.works/
+ARG APP_URL=https://your-dashboard-url
+ARG OTEL_URL=https://your-otel-collector-url/
 COPY scripts/install.sh /releases/install.sh
 COPY scripts/uninstall.sh /releases/uninstall.sh
 COPY scripts/install.ps1 /releases/install.ps1
