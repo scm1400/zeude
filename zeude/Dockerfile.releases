@@ -31,10 +31,14 @@ RUN VERSION=$(cat /tmp/version) && \
     GOOS=windows GOARCH=arm64 go build -ldflags="-s -w" -o /releases/zeude-windows-arm64.exe ./cmd/doctor && \
     echo "$VERSION" > /releases/version.txt
 
+ARG APP_URL=https://your-dashboard-url
+ARG OTEL_URL=https://your-otel-collector-url/
 COPY scripts/install.sh /releases/install.sh
 COPY scripts/uninstall.sh /releases/uninstall.sh
 COPY scripts/install.ps1 /releases/install.ps1
 COPY scripts/uninstall.ps1 /releases/uninstall.ps1
+RUN sed -i "s|https://your-dashboard-url|${APP_URL}|g" /releases/install.sh /releases/uninstall.sh /releases/install.ps1 /releases/uninstall.ps1 && \
+    sed -i "s|https://your-otel-collector-url/|${OTEL_URL}|g" /releases/install.sh /releases/uninstall.sh /releases/install.ps1 /releases/uninstall.ps1
 
 # Serve with nginx
 FROM nginx:alpine
