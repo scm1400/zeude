@@ -114,6 +114,7 @@ try {
 } catch {
     Write-Host "FAILED" -ForegroundColor Red
     Write-Host "Error: Failed to download from $ShimUrl"
+    Write-Host "Detail: $($_.Exception.Message)" -ForegroundColor Yellow
     Wait-AndExit 1
 }
 
