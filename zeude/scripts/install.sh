@@ -3,6 +3,15 @@
 # Installs the claude shim and configures PATH for telemetry collection
 set -e
 
+# Detect Windows (Git Bash/MSYS/Cygwin) early and redirect to PowerShell installer
+case "$(uname -s | tr '[:upper:]' '[:lower:]')" in
+    msys*|mingw*|cygwin*)
+        echo "Windows detected (Git Bash/MSYS)."
+        echo "Please use the PowerShell installer instead:"
+        echo "  irm \"https://your-dashboard-url/releases/install.ps1\" | iex"
+        exit 0 ;;
+esac
+
 # Configuration
 DOWNLOAD_BASE="${ZEUDE_DOWNLOAD_BASE:-https://your-dashboard-url}"
 DEFAULT_ENDPOINT="https://your-otel-collector-url/"
