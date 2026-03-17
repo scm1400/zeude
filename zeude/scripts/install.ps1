@@ -205,6 +205,7 @@ Open the Zeude monitoring dashboard in your browser with automatic authenticatio
    - Extract the `token` from the response
 
 4. **Open Browser**
+   - Open `{dashboard_url}/auth?ott={token}` in the default browser
    - Use `start` on Windows, `open` on macOS, or `xdg-open` on Linux
 '@
 Set-Content -Path (Join-Path $SkillDir "zeude.md") -Value $SkillContent
